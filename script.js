@@ -1,46 +1,65 @@
-let totalMinutes = 120; // 2시간 = 120분
+let totalSeconds = 7200; // 2시간
+let elapsed = 0;
 let timerInterval = null;
-let alertedMinutes = new Set();
+let running = false;
 
-const oneMinSound = new Audio('1min.mp3');
-const thirtyMinSound = new Audio('30min.mp3');
-const twoHourSound = new Audio('2hour.mp3');
+const timerDisplay = document.getElementById("timer");
+const toggleBtn = document.getElementById("toggle-btn");
+
+const sound1min = document.getElementById("sound-1min");
+const sound30min = document.getElementById("sound-30min");
+const sound2hr = document.getElementById("sound-2hr");
+
+function updateDisplay(secondsLeft) {
+  const h = String(Math.floor(secondsLeft / 3600)).padStart(2, "0");
+  const m = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, "0");
+  const s = String(secondsLeft % 60).padStart(2, "0");
+  timerDisplay.textContent = `${h}:${m}:${s}`;
+}
 
 function startTimer() {
-  let endTime = Date.now() + totalMinutes * 60 * 1000;
-  alertedMinutes.clear();
-
   timerInterval = setInterval(() => {
-    const now = Date.now();
-    let remainingMs = endTime - now;
+    if (!running) return;
 
-    if (remainingMs <= 0) {
-      document.getElementById('timeDisplay').textContent = "00:00:00";
-      twoHourSound.play();
-      clearInterval(timerInterval);
-      return;
+    elapsed += 1;
+    const remaining = totalSeconds - elapsed;
+    updateDisplay(remaining);
+
+    // 매 1분마다
+    if (elapsed % 60 === 0 && elapsed < totalSeconds) {
+      sound1min.play();
     }
 
-    const remainingMin = Math.floor(remainingMs / 60000);
-    const remainingSec = Math.floor((remainingMs % 60000) / 1000);
+    // 매 30분마다
+    if (elapsed % 1800 === 0 && elapsed < totalSeconds) {
+      sound30min.play();
+    }
 
-    const hours = String(Math.floor(remainingMin / 60)).padStart(2, '0');
-    const mins = String(remainingMin % 60).padStart(2, '0');
-    const secs = String(remainingSec).padStart(2, '0');
-
-    document.getElementById('timeDisplay').textContent = `${hours}:${mins}:${secs}`;
-
-    // 알림
-    const elapsed = 120 - remainingMin; // 경과된 분 수
-    if (!alertedMinutes.has(elapsed) && remainingSec === 0) {
-          if (elapsed === 120) {
-        twoHourSound.play();
-      } else if (elapsed % 30 === 0 && elapsed !== 0) {
-        thirtyMinSound.play();
-      } else if (elapsed > 0) {
-        oneMinSound.play();
-      }
-      alertedMinutes.add(elapsed);
+    // 2시간(종료 시)
+    if (elapsed === totalSeconds) {
+      sound2hr.play();
+      clearInterval(timerInterval);
+      toggleBtn.textContent = "다시 시작";
+      running = false;
     }
   }, 1000);
 }
+
+toggleBtn.addEventListener("click", () => {
+  if (!running && elapsed === totalSeconds) {
+    // Reset
+    elapsed = 0;
+    updateDisplay(totalSeconds);
+  }
+
+  running = !running;
+
+  if (running) {
+    toggleBtn.textContent = "일시정지";
+    if (!timerInterval) startTimer();
+  } else {
+    toggleBtn.textContent = "재생";
+  }
+});
+
+updateDisplay(totalSeconds);
